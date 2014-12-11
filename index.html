@@ -15,10 +15,11 @@
 
 <script src="vendors/jquery/jquery-1.11.1.min.js"></script>
 <script src="vendors/bootstrap/js/bootstrap.min.js"></script>
-
+<script src="/socket.io/socket.io.js"></script>
 <script>
 	(function() {
 		console.log("DOM ready!");
+    var socket = io('http://localhost');
 	})();
 </script>
 
