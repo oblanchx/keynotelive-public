@@ -1,6 +1,18 @@
 var http = require("http");
 var url = require("url");
+var mongo = require("mongodb").MongoClient;
 
+//MongoDb server connection
+mongo.connect("mongodb://localhost:27017/keynotelive", function(err, db) {
+	if(err)
+		console.log("Connection fail");
+	else
+		console.log("Connected correctly to server");
+
+	db.close();
+});
+
+//Request handler (server)
 var server = http.createServer(function(req, res) {
 
 	//Parsing url variables
