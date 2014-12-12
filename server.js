@@ -14,28 +14,35 @@ mongo.connect("mongodb://localhost:27017/keynotelive", function(err, db) {
 	db.close();
 });
 
-var cache = {};
-
-//Put index.html in cache.
-fs.readFile('./index.html', function (err, data) {
-	if (err) {
-		throw err;
+var cache = {
+	cachePage : function(path) {
+		//Put %path%.html in cache.
+		fs.readFile("."+path, function (err, data) {
+			if (err) {
+				throw err;
+			}
+			cache[path] = data;		//Variable data is a buffer.
+			console.log(path + ' is now in cache.');
+		});
 	}
-	cache['/index.html'] = data;		//Variable data is a buffer.
-	console.log('index.html is now in cache.');
-});
+};
 
-//Request handler (server)
+cache.cachePage('/index.html');
+cache.cachePage('/admin.html');
+//Third party scripts are cached for now, may change in the futur.
+cache.cachePage('/vendors/jquery/jquery-1.11.1.min.js');
+cache.cachePage('/vendors/bootstrap/js/bootstrap.min.js');
+cache.cachePage('/vendors/bootstrap/css/bootstrap.min.css');
+
+//req handler (server)
 var server = http.createServer(function(req, res) {
 
 	//Parsing url variables
-	var query = url.parse(req.url, true).query;
-	console.log(query);
-
-	//Writing response
-	res.writeHead(200, {"Content-Type": "text/html"});
-	res.write(cache['/index.html']);
-	res.end();
+	//var query = url.parse(req.url, true).query;
+	//console.log(query);
+	var pathname = url.parse(req.url).pathname;
+	console.log("Request for " + pathname + " received.");
+	route(pathname, req, res);
 });
 
 server.listen(7777);
@@ -44,6 +51,22 @@ server.listen(7777);
 process.on('uncaughtException', function(err) {
 	console.log('Caught exception: ' + err);
 });
+
+function route(pathname, req, res) {
+
+	if(pathname in cache) {
+
+		res.writeHead(200, {"Content-Type": "text/html"});
+		res.write(cache[pathname]);
+		res.end();
+	} else {
+
+		console.log("No request handler found for " + pathname);
+		res.writeHead(404, {"Content-Type" : "text/plain"});
+		res.write("404 Not found");
+		res.end();
+	}
+}
 
 /*******************************************************************************
 *															Socket Implementation													   *
@@ -97,6 +120,7 @@ function addListeners(cltSocket, srvSocket) {
 			cltSocket.addListener('dislike', onDislike);
 			cltSocket.addListener('like', onLike);
 			cltSocket.addListener('ready', onReady);
+			cltSocket.addListener('adminLog', onAdminLog);	//Admin logging event.
 			break;
 		}
 	}
@@ -130,5 +154,11 @@ function onReady(latestKeynotePoint) {
 	//database.
 
 	//Send the data to the client that emitted the 'ready' event.
-	
+
+}
+
+function onAdminLog(credentials) {
+	//Parse the credentials
+	//Validate them.
+	//If valid, ???
 }

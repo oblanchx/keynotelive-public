@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KeyNoteLive</title>
+
+  <link href="vendors/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+</head>
+<body>
+
+  <div id="createPost">
+    <div class="postDate"></div>
+    <div class="postContent">
+      <input></input>
+    </div>
+    <button id="postBtn">post</button>
+  </div>
+
+  <div id="content"></div>
+
+  <div style="margin-top: 100px;" class="well col-sm-12 col-md-10 col-lg-8 col-md-offset-1 col-lg-offset-2" id="result"></div>
+
+  <script src="vendors/jquery/jquery-1.11.1.min.js"></script>
+  <script src="vendors/bootstrap/js/bootstrap.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+  (function() {
+    console.log("DOM ready!");
+    //Populate page with cache content.
+
+    var socket = io('http://localhost');
+
+    //Add event listeners
+    socket.on('post', function(data) {
+      //Populate keynote feed with post data
+      //Parse data
+      //Create keynote object 'evenement' and populate it with parsed data.
+      //Push the Keynote object on the feed.
+      //Store it in the local cache.
+    });
+    socket.on('like', function(id) {
+      //increment the like counter of the like element identified by 'id'.
+      $('#'+id).val(this++);
+    });
+    socket.on('dislike', function() {
+      //increment the dislike counter of the dislike element identified by 'id'.
+      $('#'+id).val(this++);
+    });
+    socket.on('update', function() {
+
+    });
+    socket.on('delete', function() {
+
+    });
+
+    var latestCachedKeynote = null;
+    //Fetch the latest cached point of the keynote
+    //Send it to the server.
+    socket.emit('ready', latestCachedKeynote);
+
+    /*$('#postBtn').click(function(){
+      //Fetch post data
+      var data {
+        "postContent" : $('#createPost.postContent > input').val();
+      var data = null;
+      socket.emit('post', data);
+    });  */
+
+  })();
+
+</script>
+
+</body>
+</html>
