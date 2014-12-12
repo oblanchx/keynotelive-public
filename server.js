@@ -1,6 +1,7 @@
 var http = require("http");
 var url = require("url");
 var mongo = require("mongodb").MongoClient;
+var ObjectID = require('mongodb').ObjectID;
 var socketServer = require('socket.io');
 var fs = require('fs');
 
@@ -18,6 +19,7 @@ var cache = {
 }
 
 var db; //Used to keep the mongodb connection open
+var posts; //MongoDb collection
 
 cache.cachePage('/index.html');
 cache.cachePage('/admin.html');
@@ -41,7 +43,7 @@ var server = http.createServer(function(req, res) {
 });
 
 //MongoDb server connection
-mongo.connect("mongodb://localhost:27017/keynotelive", function(err, db) {
+mongo.connect("mongodb://localhost:27017/keynotelive", function(err, dbhandle) {
 	if(err) //Kill the server if the mongodb connection fail
 	{
 		console.log("MongoDb: Connection fail.");
@@ -50,10 +52,11 @@ mongo.connect("mongodb://localhost:27017/keynotelive", function(err, db) {
 	else //Launch the server if the mongodb connection succeed
 	{
 		console.log("MongoDb: Connected correctly to server.");
+
+		db = dbhandle;
+		posts = db.collection("posts");
 		server.listen(7777);
 	}
-
-	var posts = db.collection("posts");
 });
 
 
@@ -124,7 +127,10 @@ function addListeners(cltSocket, srvSocket) {
 				data.timestamp = Date.now();
 				data.like = 0;
 				data.dislike = 0;
-				srvSocket.emit('post', data);
+
+				posts.insert(data, function(err, result) {
+					srvSocket.emit('post', result[0]);
+				});
 			});
 			break;
 		}
@@ -154,11 +160,19 @@ function emitInitialData(srvSocket) {
 function onLike(id) {
 	//Will call a function that will increment the like counter of the
 	//like element identified by the 'id' parameter.
+
+	posts.update({_id: new ObjectID(id)}, {$inc: {like: 1}}, function(err, result) {
+		//TODO: error handler
+	});
 }
 
 function onDislike(id) {
 	//Will call a function that will increment the dislike counter of the
 	//dislike element identified by the 'id' parameter.
+
+	posts.update({_id: new ObjectID(id)}, {$inc: {dislike: 1}}, function(err, result) {
+		//TODO: error handler
+	});
 }
 
 function onReady(latestKeynotePoint) {
