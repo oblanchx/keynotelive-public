@@ -107,7 +107,7 @@ const NORMAL_CLT = 1;		//Normal client.
 function addListeners(cltSocket, srvSocket) {
 
 	//Client type verification
-	var cltType = ADMIN_CLT;
+	var cltType = NORMAL_CLT;
 
 	switch(cltType) {
 		case ADMIN_CLT: {
@@ -163,6 +163,10 @@ function onLike(id) {
 
 	posts.update({_id: new ObjectID(id)}, {$inc: {like: 1}}, function(err, result) {
 		//TODO: error handler
+		if(err)
+			{}
+		else
+			srvSocket.emit('like', id);
 	});
 }
 
@@ -172,6 +176,10 @@ function onDislike(id) {
 
 	posts.update({_id: new ObjectID(id)}, {$inc: {dislike: 1}}, function(err, result) {
 		//TODO: error handler
+		if(err)
+			{}
+			else
+				srvSocket.emit('dislike', id);
 	});
 }
 
