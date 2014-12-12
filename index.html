@@ -19,7 +19,33 @@
 <script>
 	(function() {
 		console.log("DOM ready!");
+
+    //Populate page with cache content.
+
     var socket = io('http://localhost');
+
+    //Add event listeners
+    socket.on('post', function(){
+
+    });
+    socket.on('like', function(){
+
+    });
+    socket.on('dislike', function(){
+
+    });
+    socket.on('update', function(){
+      
+    });
+    socket.on('delete', function(){
+
+    });
+
+    var latestCachedKeynote = null;
+    //Fetch the latest cached point of the keynote
+    //Send it to the server.
+    socket.emit('ready', latestCachedKeynote);
+
 	})();
 </script>
 

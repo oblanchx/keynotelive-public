@@ -76,28 +76,26 @@ function addListeners(cltSocket, srvSocket) {
 	switch(cltType) {
 		case ADMIN_CLT: {
 
-			cltSocket.addListener('adminLog', function(){
+			cltSocket.addListener('adminLog', function() {
 
 			});
-			cltSocket.addListener('delete', function(){
+			cltSocket.addListener('delete', function() {
 
 			});
-			cltSocket.addListener('edit', function(){
+			cltSocket.addListener('edit', function(id, data) {
 
 			});
-			cltSocket.addListener('post', function(){
-
+			cltSocket.addListener('post', function(data) {
+				//Will store the content of the post in the database and broadcast it to
+				//the clients.
 			});
 			break;
 		}
 		case NORMAL_CLT: {
 
-			cltSocket.addListener('dislike', function(btnId) {
-
-			});
-			cltSocket.addListener('like', function(btnId) {
-
-			});
+			cltSocket.addListener('dislike', onDislike);
+			cltSocket.addListener('like', onLike);
+			cltSocket.addListener('ready', onReady);
 			break;
 		}
 	}
@@ -114,3 +112,19 @@ function emitInitialData(srvSocket) {
 /*******************************************************************************
 *														Event Handlers Implementation									   	 *
 *******************************************************************************/
+
+function onLike(id) {
+	//Will call a function that will increment the like counter of the
+	//like element identified by the 'id' parameter.
+}
+
+function onDislike(id) {
+	//Will call a function that will increment the dislike counter of the
+	//dislike element identified by the 'id' parameter.
+}
+
+function onReady(latestKeynotePoint) {
+	//Fetch the keynote data from the point pointed by 'latestKeynotePoint' (the
+	//latest keyntoe point in the client's cache) to the latest keynote in the
+	//database.
+}
