@@ -15,7 +15,7 @@ mongo.connect("mongodb://localhost:27017/keynotelive", function(err, db) {
 });
 
 var cache = {
-	cachePage : function(path) {
+	cachePage : function(path, mimeType) {
 		//Put %path%.html in cache.
 		fs.readFile("."+path, function (err, data) {
 			if (err) {
@@ -29,7 +29,7 @@ var cache = {
 
 cache.cachePage('/index.html');
 cache.cachePage('/admin.html');
-//Third party scripts are cached for now, may change in the futur.
+//Third party scripts are cached for now, may change in the future.
 cache.cachePage('/vendors/jquery/jquery-1.11.1.min.js');
 cache.cachePage('/vendors/bootstrap/js/bootstrap.min.js');
 cache.cachePage('/vendors/bootstrap/css/bootstrap.min.css');
@@ -56,7 +56,7 @@ function route(pathname, req, res) {
 
 	if(pathname in cache) {
 
-		res.writeHead(200, {"Content-Type": "text/html"});
+		res.writeHead(200, {"Content-Type": getMimeType(pathname)});
 		res.write(cache[pathname]);
 		res.end();
 	} else {
@@ -161,4 +161,31 @@ function onAdminLog(credentials) {
 	//Parse the credentials
 	//Validate them.
 	//If valid, ???
+}
+
+/*******************************************************************************
+*													Other Functions Implementation									   	 *
+*******************************************************************************/
+
+function getMimeType(pathname) {
+
+	var mimeType;
+	var fileExtRegex = /\.[0-9a-z]+$/i;
+	var resArray = fileExtRegex.exec(pathname);
+
+	switch(resArray[0]) {
+		case ".js": {
+			mimeType = 'text/javascript';
+			break;
+		}
+		case ".css": {
+			mimeType = 'text/css';
+			break;
+		}
+		case ".html": {
+			mimeType = 'text/html';
+			break;
+		}
+	}
+	return mimeType;
 }

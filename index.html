@@ -11,14 +11,15 @@
 </head>
 <body>
 
-<div id="content"></div>
+<div id="postFeed"></div>
 
-<div style="margin-top: 100px;" class="well col-sm-12 col-md-10 col-lg-8 col-md-offset-1 col-lg-offset-2" id="result"></div>
+<!-- <div style="margin-top: 100px;" class="well col-sm-12 col-md-10 col-lg-8 col-md-offset-1 col-lg-offset-2" id="result"></div> -->
 
 <script src="vendors/jquery/jquery-1.11.1.min.js"></script>
 <script src="vendors/bootstrap/js/bootstrap.min.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script>
+
 	(function() {
 		console.log("DOM ready!");
     //Populate page with cache content.
@@ -26,21 +27,15 @@
     var socket = io('http://localhost');
 
     //Add event listeners
-    socket.on('post', function(data) {
-      //Populate keynote feed with post data
-      //Parse data
-      //Create keynote object 'evenement' and populate it with parsed data.
-      //Push the Keynote object on the feed.
-      //Store it in the local cache.
-      
-    });
+    socket.on('post', onPost);
+
     socket.on('like', function(id) {
       //increment the like counter of the like element identified by 'id'.
-      $('#'+id).val(this++);
+      $('#'+id).val();
     });
-    socket.on('dislike', function() {
+    socket.on('dislike', function(id) {
       //increment the dislike counter of the dislike element identified by 'id'.
-      $('#'+id).val(this++);
+      $('#'+id).val();
     });
     socket.on('update', function() {
 
@@ -54,6 +49,25 @@
     //Send it to the server.
     socket.emit('ready', latestCachedKeynote);
 	})();
+
+  function onPost(data) {
+    //Populate keynote feed with post data
+    //Create keynote post object and populate it with parsed data.
+    var postContainer = document.createElement('div');
+    var postAuthor = document.createElement('span');
+    var postDate = document.createElement('span');
+    var postContent = document.createElement('div');
+    //postContainer.id = "";
+    postContainer.appendChild(postAuthor);
+    postContainer.appendChild(postDate);
+    postContainer.appendChild(postContent);
+    postAuthor.innerHTML = "Author: " + data.postAuthor;
+    //postDate = data.postDate;
+    postContent.innerHTML = data.postContent;
+    //Push the Keynote object on the feed.
+    $('#postFeed').prepend(postContainer);
+    //Store it in the local cache.
+  }
 
 </script>
 

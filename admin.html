@@ -12,16 +12,19 @@
 <body>
 
   <div id="createPost">
+    <div class="postAuthor">
+      Author:
+      <input type=text></input>
+    </div>
     <div class="postDate"></div>
+    Content:
     <div class="postContent">
-      <input></input>
+      <textarea cols="100" rows="5"></textarea>
     </div>
     <button id="postBtn">post</button>
   </div>
 
-  <div id="content"></div>
-
-  <div style="margin-top: 100px;" class="well col-sm-12 col-md-10 col-lg-8 col-md-offset-1 col-lg-offset-2" id="result"></div>
+  <!-- <div style="margin-top: 100px;" class="well col-sm-12 col-md-10 col-lg-8 col-md-offset-1 col-lg-offset-2" id="result"></div> -->
 
   <script src="vendors/jquery/jquery-1.11.1.min.js"></script>
   <script src="vendors/bootstrap/js/bootstrap.min.js"></script>
@@ -29,46 +32,18 @@
   <script>
   (function() {
     console.log("DOM ready!");
-    //Populate page with cache content.
-
     var socket = io('http://localhost');
-
     //Add event listeners
-    socket.on('post', function(data) {
-      //Populate keynote feed with post data
-      //Parse data
-      //Create keynote object 'evenement' and populate it with parsed data.
-      //Push the Keynote object on the feed.
-      //Store it in the local cache.
-    });
-    socket.on('like', function(id) {
-      //increment the like counter of the like element identified by 'id'.
-      $('#'+id).val(this++);
-    });
-    socket.on('dislike', function() {
-      //increment the dislike counter of the dislike element identified by 'id'.
-      $('#'+id).val(this++);
-    });
-    socket.on('update', function() {
+    $('#postBtn').click(function(){
 
-    });
-    socket.on('delete', function() {
-
-    });
-
-    var latestCachedKeynote = null;
-    //Fetch the latest cached point of the keynote
-    //Send it to the server.
-    socket.emit('ready', latestCachedKeynote);
-
-    /*$('#postBtn').click(function(){
       //Fetch post data
-      var data {
-        "postContent" : $('#createPost.postContent > input').val();
-      var data = null;
+      var data = {
+        postAuthor : $('#createPost .postAuthor > input').val(),
+        postDate : null,
+        postContent : $('#createPost .postContent > textarea').val()
+      };
       socket.emit('post', data);
-    });  */
-
+    });
   })();
 
 </script>
