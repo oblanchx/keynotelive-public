@@ -7,18 +7,23 @@
     <title>KeyNoteLive</title>
 
     <link rel="stylesheet" href="vendors/bootstrap/css/bootstrap.min.css">
-    <link rel="stylesheet" href="vendors/fontawesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="vendors/font-awesome/css/font-awesome.min.css">
+
+    <style>
+      p {
+        text-indent: 30px;
+      }
+    </style>
 
 </head>
 <body>
 
-<div id="postFeed"></div>
-
-<!-- <div style="margin-top: 100px;" class="well col-sm-12 col-md-10 col-lg-8 col-md-offset-1 col-lg-offset-2" id="result"></div> -->
+<div style="margin-top: 100px;" class="well col-sm-12 col-md-10 col-lg-8 col-md-offset-1 col-lg-offset-2" id="postFeed"></div>
 
 <script src="vendors/jquery/jquery-1.11.1.min.js"></script>
 <script src="vendors/bootstrap/js/bootstrap.min.js"></script>
-<script src="/socket.io/socket.io.js"></script>
+<script src="vendors/socket.io/socket.io.js"></script>
+
 <script>
 
 	(function() {
@@ -49,25 +54,48 @@
     //Fetch the latest cached point of the keynote
     //Send it to the server.
     socket.emit('ready', latestCachedKeynote);
+
+    //Testin around :P
+    onPost({_id: "blablabla", msg: "test", author: "Smoolak", timestamp: 1418415134000});
 	})();
 
   function onPost(data) {
     //Populate keynote feed with post data
-    //Create keynote post object and populate it with parsed data.
-    var postContainer = document.createElement('div');
-    var postAuthor = document.createElement('span');
-    var postDate = document.createElement('span');
-    var postContent = document.createElement('div');
-    //postContainer.id = "";
-    postContainer.appendChild(postAuthor);
-    postContainer.appendChild(postDate);
-    postContainer.appendChild(postContent);
-    postAuthor.innerHTML = "Author: " + data.postAuthor;
-    //postDate = data.postDate;
-    postContent.innerHTML = data.postContent;
+
     //Push the Keynote object on the feed.
-    $('#postFeed').prepend(postContainer);
+    $('#postFeed').prepend('<div id="' + data._id + '"><h4><b>' + fancyTime(data.timestamp) + '</b> par ' + data.author + ' </h4><p>' + data.msg + '</p><hr></div>');
     //Store it in the local cache.
+  }
+
+  //Utility functions
+  function fancyTime(timestamp)
+  {
+    var nameDays = new Array("dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi") ;
+    var nameMonth = new Array("janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre") ;
+
+    var actualDate = new Date();
+    var postDate = new Date(timestamp);
+    var timeDiff = Math.round((actualDate - postDate)/1000);
+
+    if (timeDiff < 86400)
+    {
+      if (timeDiff >= 60 && timeDiff < 120)
+        return "il y a environ une minute";
+      else if (timeDiff >= 60 && timeDiff < 3600)
+        return "il y a " + Math.floor(timeDiff/60) + " minutes";
+      else if (timeDiff >= 3600 && timeDiff < 7200)
+        return "il y a environ une heure";
+      else if (timeDiff >= 3600)
+        return "il y a " + Math.floor(timeDiff/3600) + " heures";
+      else
+        return "il y a moins d'une minute";
+    }
+    else if(timeDiff < 172800)
+      return "hier à " + pad(postDate.getHours()) + ":" + pad(postDate.getMinutes());
+    else if(postDate.getWeek() == actualDate.getWeek())
+      return nameDays[postDate.getDay()] + " à " + pad(postDate.getHours()) + ":" + pad(postDate.getMinutes());
+    else
+      return postDate.getDate() + " " + nameMonth[postDate.getMonth()] + ", à " + pad(postDate.getHours()) + ":" + pad(postDate.getMinutes());
   }
 
 </script>
