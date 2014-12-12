@@ -11,6 +11,9 @@
 </head>
 <body>
 
+<div id="content">
+</div>
+
 <div style="margin-top: 100px;" class="well col-sm-12 col-md-10 col-lg-8 col-md-offset-1 col-lg-offset-2" id="result"></div>
 
 <script src="vendors/jquery/jquery-1.11.1.min.js"></script>
@@ -19,25 +22,29 @@
 <script>
 	(function() {
 		console.log("DOM ready!");
-
     //Populate page with cache content.
 
     var socket = io('http://localhost');
 
     //Add event listeners
-    socket.on('post', function(){
+    socket.on('post', function(data) {
+      //Populate keynote feed with post data
+      //Parse data
+      //Create keynote object 'evenement' and populate it with parsed data.
+      //Push the Keynote object on the feed.
+    });
+    socket.on('like', function(id) {
+      //increment the like counter of the like element identified by 'id'.
+      $('#'+id).val(this++);
+    });
+    socket.on('dislike', function() {
+      //increment the dislike counter of the dislike element identified by 'id'.
+      $('#'+id).val(this++);
+    });
+    socket.on('update', function() {
 
     });
-    socket.on('like', function(){
-
-    });
-    socket.on('dislike', function(){
-
-    });
-    socket.on('update', function(){
-      
-    });
-    socket.on('delete', function(){
+    socket.on('delete', function() {
 
     });
 
@@ -45,8 +52,8 @@
     //Fetch the latest cached point of the keynote
     //Send it to the server.
     socket.emit('ready', latestCachedKeynote);
-
 	})();
+
 </script>
 
 </body>

@@ -88,6 +88,7 @@ function addListeners(cltSocket, srvSocket) {
 			cltSocket.addListener('post', function(data) {
 				//Will store the content of the post in the database and broadcast it to
 				//the clients.
+				srvSocket.emit('post', data);
 			});
 			break;
 		}
@@ -125,6 +126,9 @@ function onDislike(id) {
 
 function onReady(latestKeynotePoint) {
 	//Fetch the keynote data from the point pointed by 'latestKeynotePoint' (the
-	//latest keyntoe point in the client's cache) to the latest keynote in the
+	//latest keynote point in the client's cache) to the latest keynote in the
 	//database.
+
+	//Send the data to the client that emitted the 'ready' event.
+	
 }
