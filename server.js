@@ -4,16 +4,6 @@ var mongo = require("mongodb").MongoClient;
 var socketServer = require('socket.io');
 var fs = require('fs');
 
-//MongoDb server connection
-mongo.connect("mongodb://localhost:27017/keynotelive", function(err, db) {
-	if(err)
-		console.log("Connection fail");
-	else
-		console.log("Connected correctly to server");
-
-	db.close();
-});
-
 var cache = {
 	cachePage : function(path, mimeType) {
 		//Put %path%.html in cache.
@@ -25,7 +15,9 @@ var cache = {
 			console.log(path + ' is now in cache.');
 		});
 	}
-};
+}
+
+var db; //Used to keep the mongodb connection open
 
 cache.cachePage('/index.html');
 cache.cachePage('/admin.html');
@@ -45,7 +37,22 @@ var server = http.createServer(function(req, res) {
 	route(pathname, req, res);
 });
 
-server.listen(7777);
+//MongoDb server connection
+mongo.connect("mongodb://localhost:27017/keynotelive", function(err, db) {
+	if(err) //Kill the server if the mongodb connection fail
+	{
+		console.log("MongoDb: Connection fail.");
+		process.exit();
+	}
+	else //Launch the server if the mongodb connection succeed
+	{
+		console.log("MongoDb: Connected correctly to server.");
+		server.listen(7777);
+	}
+
+	var posts = db.collection("posts");
+});
+
 
 //Catch all errors (prevent server crashes)
 process.on('uncaughtException', function(err) {
