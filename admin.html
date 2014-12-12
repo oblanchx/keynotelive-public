@@ -31,16 +31,14 @@
   <script src="vendors/socket.io/socket.io.js"></script>
   <script>
   (function() {
-    console.log("DOM ready!");
     var socket = io('http://localhost');
     //Add event listeners
     $('#postBtn').click(function(){
 
       //Fetch post data
       var data = {
-        postAuthor : $('#createPost .postAuthor > input').val(),
-        postDate : null,
-        postContent : $('#createPost .postContent > textarea').val()
+        author : $('#createPost .postAuthor > input').val(),
+        msg : $('#createPost .postContent > textarea').val()
       };
       socket.emit('post', data);
     });

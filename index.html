@@ -13,6 +13,19 @@
       p {
         text-indent: 30px;
       }
+      .like {
+        margin-left: 5px;
+        margin-right: 10px;
+      }
+      .dislike {
+        margin-left: 5px;
+      }
+      hr {
+        margin-top: 50px;
+      }
+      like-container, dislike-container {
+        cursor: pointer;
+      }
     </style>
 
 </head>
@@ -26,11 +39,11 @@
 
 <script>
 
+  var socket;
 	(function() {
-		console.log("DOM ready!");
     //Populate page with cache content.
 
-    var socket = io('http://localhost');
+    socket = io('http://localhost');
 
     //Add event listeners
     socket.on('post', onPost);
@@ -54,20 +67,47 @@
     //Fetch the latest cached point of the keynote
     //Send it to the server.
     socket.emit('ready', latestCachedKeynote);
-
-    //Testin around :P
-    onPost({_id: "blablabla", msg: "test", author: "Smoolak", timestamp: 1418415134000});
 	})();
 
   function onPost(data) {
     //Populate keynote feed with post data
 
     //Push the Keynote object on the feed.
-    $('#postFeed').prepend('<div id="' + data._id + '"><h4><b>' + fancyTime(data.timestamp) + '</b> par ' + data.author + ' </h4><p>' + data.msg + '</p><hr></div>');
+    $('#postFeed').prepend('<div id="' + data._id + '"> \
+        <h4><b>' + fancyTime(data.timestamp) + '</b> par ' + data.author + ' </h4> \
+        <p>' + data.msg + '</p> \
+        <div class="pull-right"> \
+        <span class="like-container"><i class="fa fa-thumbs-o-up"></i><span class="like">' + data.like + '</span></span> \
+        <span class="dislike-container"><i class="fa fa-thumbs-o-down"></i><span class="dislike">' + data.dislike + '</span> </span> \
+        </div> \
+        <hr> \
+      </div>');
+
+      //Like button click handler
+      $('#' + data._id + ' span.like-container ').click(function() {
+        //Incrementing local counter
+        var e = $(this).find('span');
+        e.text(parseInt(e.text()) + 1);
+
+        //Sending the like event to the server
+        socket.emit('like', data._id);
+      });
+
+      //Like button click handler
+      $('#' + data._id + ' span.dislike-container ').click(function() {
+        //Incrementing local counter
+        var e = $(this).find('span');
+        e.text(parseInt(e.text()) + 1);
+
+        //Sending the like event to the server
+        socket.emit('dislike', data._id);
+      });
     //Store it in the local cache.
   }
 
   //Utility functions
+  function pad(n){return n<10 ? '0'+n : n}
+
   function fancyTime(timestamp)
   {
     var nameDays = new Array("dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi") ;

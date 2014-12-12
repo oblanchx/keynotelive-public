@@ -25,6 +25,9 @@ cache.cachePage('/admin.html');
 cache.cachePage('/vendors/jquery/jquery-1.11.1.min.js');
 cache.cachePage('/vendors/bootstrap/js/bootstrap.min.js');
 cache.cachePage('/vendors/bootstrap/css/bootstrap.min.css');
+cache.cachePage('/vendors/font-awesome/css/font-awesome.min.css');
+cache.cachePage('/vendors/font-awesome/fonts/fontawesome-webfont.woff');
+cache.cachePage('/vendors/socket.io/socket.io.js');
 
 //req handler (server)
 var server = http.createServer(function(req, res) {
@@ -118,6 +121,9 @@ function addListeners(cltSocket, srvSocket) {
 			cltSocket.addListener('post', function(data) {
 				//Will store the content of the post in the database and broadcast it to
 				//the clients.
+				data.timestamp = Date.now();
+				data.like = 0;
+				data.dislike = 0;
 				srvSocket.emit('post', data);
 			});
 			break;
