@@ -50,11 +50,13 @@
 
     socket.on('like', function(id) {
       //increment the like counter of the like element identified by 'id'.
-      $('#'+id).val();
+      var e = $('#' + id + ' span.like-container > span');
+      e.text(parseInt(e.text()) + 1);
     });
     socket.on('dislike', function(id) {
       //increment the dislike counter of the dislike element identified by 'id'.
-      $('#'+id).val();
+      var e = $('#' + id + ' span.dislike-container > span');
+      e.text(parseInt(e.text()) + 1);
     });
     socket.on('update', function() {
 
@@ -85,20 +87,12 @@
 
       //Like button click handler
       $('#' + data._id + ' span.like-container ').click(function() {
-        //Incrementing local counter
-        var e = $(this).find('span');
-        e.text(parseInt(e.text()) + 1);
-
         //Sending the like event to the server
         socket.emit('like', data._id);
       });
 
       //Like button click handler
       $('#' + data._id + ' span.dislike-container ').click(function() {
-        //Incrementing local counter
-        var e = $(this).find('span');
-        e.text(parseInt(e.text()) + 1);
-
         //Sending the like event to the server
         socket.emit('dislike', data._id);
       });
