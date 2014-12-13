@@ -35,11 +35,18 @@ cache.cachePage('/vendors/socket.io/socket.io.js');
 var server = http.createServer(function(req, res) {
 
 	//Parsing url variables
-	//var query = url.parse(req.url, true).query;
-	//console.log(query);
-	var pathname = url.parse(req.url).pathname;
-	console.log("Request for " + pathname + " received.");
-	route(pathname, req, res);
+	var query = filterGet(url.parse(req.url, true).query);
+
+	if(getCheck(query, {type: "img", id: true, num: true}))
+	{
+			//TODO: add the image serving feature
+	}
+	else
+	{
+		var pathname = url.parse(req.url).pathname;
+		console.log("Request for " + pathname + " received.");
+		route(pathname, req, res);
+	}
 });
 
 //MongoDb server connection
@@ -218,4 +225,29 @@ function getMimeType(pathname) {
 		}
 	}
 	return mimeType;
+}
+
+function getCheck(query, obj)
+{
+	for(var i in obj)
+	{
+		if(obj[i] === true && typeof query[i] === "undefined")
+			return false;
+		if(obj[i] !== true && query[i] !== obj[i])
+			return false;
+	}
+
+	return true;
+}
+
+function filterGet(query)
+{
+	for(var i in query)
+	{
+		query[i] = query[i].trim();
+		if(query[i] === "")
+			delete query[i];
+	}
+
+	return query;
 }
