@@ -42,6 +42,9 @@
       };
       socket.emit('post', data);
     });
+
+    //TODO: make a real login
+    socket.emit('login', {user: "dummy", pass: "dummy"});
   })();
 
 </script>

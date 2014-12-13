@@ -98,51 +98,39 @@ srvSocket.on('connection', function (cltSocket) {
 	addListeners(cltSocket, srvSocket);
 });
 
-//Constants are declared here as they'll be assigned once when server.js is run
-//instead of being assigned everytime the addListeners function is called.
-const ADMIN_CLT = 0;		//Administrator client.
-const NORMAL_CLT = 1;		//Normal client.
-
 //Add listeners for the events coming from the client.
 function addListeners(cltSocket, srvSocket) {
+	cltSocket.addListener('dislike', onDislike);
+	cltSocket.addListener('like', onLike);
+	cltSocket.addListener('ready', onReady);
+	cltSocket.addListener('adminLog', onAdminLog);	//Admin logging event.
+	cltSocket.addListener('login', function(data) {
+		//If the login event is received we attach the listeners for the admin functions to the socket
 
-	//Client type verification
-	var cltType = NORMAL_CLT;
+		//TODO: verify the login informations
+		console.log("An admin logged in.");
 
-	switch(cltType) {
-		case ADMIN_CLT: {
+		cltSocket.addListener('adminLog', function() {
 
-			cltSocket.addListener('adminLog', function() {
+		});
+		cltSocket.addListener('delete', function() {
 
+		});
+		cltSocket.addListener('edit', function(id, data) {
+
+		});
+		cltSocket.addListener('post', function(data) {
+			//Will store the content of the post in the database and broadcast it to
+			//the clients.
+			data.timestamp = Date.now();
+			data.like = 0;
+			data.dislike = 0;
+
+			posts.insert(data, function(err, result) {
+				srvSocket.emit('post', result[0]);
 			});
-			cltSocket.addListener('delete', function() {
-
-			});
-			cltSocket.addListener('edit', function(id, data) {
-
-			});
-			cltSocket.addListener('post', function(data) {
-				//Will store the content of the post in the database and broadcast it to
-				//the clients.
-				data.timestamp = Date.now();
-				data.like = 0;
-				data.dislike = 0;
-
-				posts.insert(data, function(err, result) {
-					srvSocket.emit('post', result[0]);
-				});
-			});
-			break;
-		}
-		case NORMAL_CLT: {
-
-			cltSocket.addListener('dislike', onDislike);
-			cltSocket.addListener('like', onLike);
-			cltSocket.addListener('ready', onReady);
-			cltSocket.addListener('adminLog', onAdminLog);	//Admin logging event.
-			break;
-		}
-	}
+		});
+	});
 }
 
 function checkCltType() {
