@@ -22,9 +22,12 @@ var db; //Used to keep the mongodb connection open
 cache.cachePage('/index.html');
 cache.cachePage('/admin.html');
 //Third party scripts are cached for now, may change in the future.
+//TODO: Do a general set of instructions that cache the entire content of /vendors.
 cache.cachePage('/vendors/jquery/jquery-1.11.1.min.js');
 cache.cachePage('/vendors/bootstrap/js/bootstrap.min.js');
 cache.cachePage('/vendors/bootstrap/css/bootstrap.min.css');
+cache.cachePage('/vendors/socket.io/socket.io.js');
+cache.cachePage('/vendors/font-awesome/css/font-awesome.min.css');
 
 //req handler (server)
 var server = http.createServer(function(req, res) {
@@ -36,6 +39,8 @@ var server = http.createServer(function(req, res) {
 	console.log("Request for " + pathname + " received.");
 	route(pathname, req, res);
 });
+
+var posts;	//TODO: Check if we should declare posts here.
 
 //MongoDb server connection
 mongo.connect("mongodb://localhost:27017/keynotelive", function(err, db) {
@@ -50,7 +55,7 @@ mongo.connect("mongodb://localhost:27017/keynotelive", function(err, db) {
 		server.listen(7777);
 	}
 
-	var posts = db.collection("posts");
+	posts = db.collection("posts");
 });
 
 
@@ -76,7 +81,7 @@ function route(pathname, req, res) {
 }
 
 /*******************************************************************************
-*															Socket Implementation													   *
+*																		Socket																	   *
 *******************************************************************************/
 
 //Socket representation: 	srvSocket:|-----socket-----|:cltSocket
@@ -97,16 +102,12 @@ function addListeners(cltSocket, srvSocket) {
 	cltSocket.addListener('dislike', onDislike);
 	cltSocket.addListener('like', onLike);
 	cltSocket.addListener('ready', function(data) {onReady(data, cltSocket.id)});
-	cltSocket.addListener('adminLog', onAdminLog);	//Admin logging event.
+	//cltSocket.addListener('adminLog', onAdminLog);	//Admin logging event.
 	cltSocket.addListener('login', function(data) {
 		//If the login event is received we attach the listeners for the admin functions to the socket
 
 		//TODO: verify the login informations
 		console.log("An admin logged in.");
-
-		cltSocket.addListener('adminLog', function() {
-
-		});
 		cltSocket.addListener('delete', function() {
 
 		});
@@ -116,6 +117,8 @@ function addListeners(cltSocket, srvSocket) {
 		cltSocket.addListener('post', function(data) {
 			//Will store the content of the post in the database and broadcast it to
 			//the clients.
+			console.log('post received.');
+
 			data.timestamp = Date.now();
 			data.like = 0;
 			data.dislike = 0;
@@ -128,16 +131,12 @@ function addListeners(cltSocket, srvSocket) {
 
 }
 
-function checkCltType() {
-
-}
-
 function emitInitialData(srvSocket) {
 
 }
 
 /*******************************************************************************
-*														Event Handlers Implementation									   	 *
+*																	Event Handlers													   	 *
 *******************************************************************************/
 
 function onLike(id) {
@@ -180,14 +179,8 @@ function onReady(latestKeynotePoint, id) {
 
 }
 
-function onAdminLog(credentials) {
-	//Parse the credentials
-	//Validate them.
-	//If valid, ???
-}
-
 /*******************************************************************************
-*													Other Functions Implementation									   	 *
+*																	Utility Functions 									   	 		 *
 *******************************************************************************/
 
 function getMimeType(pathname) {
@@ -211,7 +204,7 @@ function getMimeType(pathname) {
 		}
 		default: {
 			mimeType = 'text/plain';
-			//TO DO: emit a mime type missing warning of the console.
+			//TODO: emit a mime type missing warning of the console.
 		}
 	}
 	return mimeType;

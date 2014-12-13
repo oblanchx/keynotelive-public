@@ -38,16 +38,32 @@
 <script src="vendors/socket.io/socket.io.js"></script>
 
 <script>
-
-  var socket;
-	(function() {
+(function() {
     //Populate page with cache content.
+    var db;
+    if("indexedDB" in window) {
+      var openRequest = indexedDB.open("keyNoteLiveDB",1);
+      //Triggered when no object store is present in indexedDB since we only use
+      //one version of the objectStore.
+      openRequest.onupgradeneeded = createObjectStore;
+      //Triggered when a connection to the keyNoteLiveDB is established.
+      openRequest.onsuccess = populFeedWithCache;
+      //Handle errors at the database level to minimize the number of added handlers
+      //to the individual requests.
+      openRequest.onerror = function(event) {
+        console.log("Database error: " + event.target.errorCode);
+        console.dir(event);
+      }
+    } else {
+      //Store to localStorage
+    }
 
+    var socket;
     socket = io('http://localhost');
-
     //Add event listeners
     socket.on('post', onPost);
-
+    socket.on('update', onUpdate);
+    socket.on('delete', onDelete);
     socket.on('like', function(id) {
       //increment the like counter of the like element identified by 'id'.
       var e = $('#' + id + ' span.like-container > span');
@@ -58,22 +74,54 @@
       var e = $('#' + id + ' span.dislike-container > span');
       e.text(parseInt(e.text()) + 1);
     });
-    socket.on('update', function() {
 
-    });
-    socket.on('delete', function() {
-
-    });
-
-    var latestCachedKeynote = null;
     //Fetch the latest cached point of the keynote
     //Send it to the server.
-    socket.emit('ready', latestCachedKeynote);
-	})();
+    //socket.emit('ready', latestCachedKeynote);
+
+    function createObjectStore(event) {
+      db = event.target.result;
+      if(!db.objectStoreNames.contains("posts")) {
+        //'id' is the primary key of the 'posts' objectStore.
+        var objectStore = db.createObjectStore("posts", { keyPath: "id" });
+        objectStore.transaction.oncomplete = function(event) {
+          console.log("objectStore 'posts' created.");
+        }
+      }
+    }
+
+    function populFeedWithCache(event) {
+      db = event.target.result;
+      var objectStore = db.transaction(["posts"]).objectStore("posts");
+      objectStore.openCursor().onsuccess = function(event) {
+        var cursor = event.target.result;
+        if (cursor) {
+          $('#postFeed').prepend('<div id="' + cursor.key + '"> \
+          <h4><b>' + fancyTime(cursor.value.timestamp) + '</b> par ' + cursor.value.author + ' </h4> \
+          <p>' + cursor.value.msg + '</p> \
+          <div class="pull-right"> \
+          <span class="like-container"><i class="fa fa-thumbs-o-up"></i><span class="like">' + cursor.value.like + '</span></span> \
+          <span class="dislike-container"><i class="fa fa-thumbs-o-down"></i><span class="dislike">' + cursor.value.dislike + '</span> </span> \
+          </div> \
+          <hr> \
+          </div>');
+          cursor.continue();
+        }
+        else {
+          //console.log("No more entries!");
+        }
+      };
+    }
+
+/*******************************************************************************
+*																	Event Handlers													   	 *
+*******************************************************************************/
+
+  //socket.io event handlers
 
   function onPost(data) {
     //Populate keynote feed with post data
-
+    console.log('post received.');
     //Push the Keynote object on the feed.
     $('#postFeed').prepend('<div id="' + data._id + '"> \
         <h4><b>' + fancyTime(data.timestamp) + '</b> par ' + data.author + ' </h4> \
@@ -96,7 +144,95 @@
         //Sending the like event to the server
         socket.emit('dislike', data._id);
       });
-    //Store it in the local cache.
+
+      storeToCache({
+        id: data._id,
+        timestamp: data.timestamp,
+        author: data.author,
+        msg: data.msg,
+        like: data.like,
+        dislike: data.dislike
+      });
+  }
+
+  function onUpdate(data) {
+    //$('#'+data._id).
+  }
+
+  function onDelete(data) {
+    $('#'+data._id).remove();
+    var request = db.transaction(["posts"], "readwrite")
+    .objectStore("posts")
+    .delete(data._id);
+    request.onsuccess = function(event) {
+      // It's gone!
+    };
+  }
+
+  function onBulkPost() {
+    //fetch a part of the locally stored posts and populate the postFeed with it.
+
+    /*var objectStore = db.transaction("customers").objectStore("customers");
+
+    objectStore.openCursor().onsuccess = function(event) {
+      var cursor = event.target.result;
+      if (cursor) {
+        cursor.value.id;
+        cursor.value.author;
+        cursor.value.timestamp;
+        cursor.value.msg;
+        //console.log("Name for SSN " + cursor.key + " is " + cursor.value.name);
+        cursor.continue();
+      }
+      else {
+        console.log("No more entries!");
+      }
+    };*/
+  }
+
+  //Cache system
+
+  function storeToCache(data) {
+    console.log(data);
+    //Add data to the database
+    var transaction = db.transaction(["posts"], "readwrite");
+    // Do something when all the data is added to the database.
+    transaction.oncomplete = function(event) {
+      console.log("Data added to the 'posts' objectStore.");
+    };
+    transaction.onerror = function(event) {
+      //TODO: Handle errors.
+      console.log('Error when storing to cache.');
+    };
+    var objectStore = transaction.objectStore("posts");
+    //using put instead of add overwrite previously existing data.
+    var request = objectStore.put(data);
+    request.onsuccess = function(event) {
+      // event.target.result == customerData[i].ssn;
+      console.log("Data added to the objectStore 'posts'.");
+    };
+  }
+
+  function getFromCache(id) {
+    /* Long version
+    var transaction = db.transaction(["posts"]);
+    var objectStore = transaction.objectStore("posts");
+    var request = objectStore.get(id);
+    request.onerror = function(event) {
+      //TODO: Handle errors.
+    };
+    request.onsuccess = function(event) {
+      // Do something with the request.result!
+    };*/
+    var data;
+    db.transaction("posts")
+    .objectStore("posts")
+    .get(id)
+    .onsuccess = function(event) {
+      console.log("fetched data: " + request.result);
+      data = request.result;
+    };
+    return data;
   }
 
   //Utility functions
@@ -132,6 +268,7 @@
       return postDate.getDate() + " " + nameMonth[postDate.getMonth()] + ", à " + pad(postDate.getHours()) + ":" + pad(postDate.getMinutes());
   }
 
+})();
 </script>
 
 </body>
