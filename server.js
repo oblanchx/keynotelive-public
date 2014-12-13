@@ -96,7 +96,7 @@ srvSocket.on('connection', function (cltSocket) {
 function addListeners(cltSocket, srvSocket) {
 	cltSocket.addListener('dislike', onDislike);
 	cltSocket.addListener('like', onLike);
-	cltSocket.addListener('ready', onReady);
+	cltSocket.addListener('ready', function(data) {onReady(data, cltSocket.id)});
 	cltSocket.addListener('adminLog', onAdminLog);	//Admin logging event.
 	cltSocket.addListener('login', function(data) {
 		//If the login event is received we attach the listeners for the admin functions to the socket
@@ -164,12 +164,19 @@ function onDislike(id) {
 	});
 }
 
-function onReady(latestKeynotePoint) {
+function onReady(latestKeynotePoint, id) {
 	//Fetch the keynote data from the point pointed by 'latestKeynotePoint' (the
 	//latest keynote point in the client's cache) to the latest keynote in the
 	//database.
 
 	//Send the data to the client that emitted the 'ready' event.
+	if(latestKeynotePoint === null)
+	{
+		posts.find({$query: {}, $orderby: {timestamp: 1}}).toArray(function(err, result) {
+			for(var i = 0; i < result.length; ++i)
+				srvSocket.to(id).emit('post', result[i]);
+		});
+	}
 
 }
 
