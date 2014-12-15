@@ -7,24 +7,28 @@
   <title>KeyNoteLive</title>
 
   <link href="vendors/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="vendors/font-awesome/css/font-awesome.min.css">
 
 </head>
 <body>
 
-  <div id="createPost">
-    <div class="postAuthor">
-      Author:
-      <input type=text></input>
+  <div style="margin-top: 100px;" class="well col-sm-12 col-md-10 col-lg-8 col-md-offset-1 col-lg-offset-2" id="result">
+  <form id="form" role="form">
+    <div class="form-group">
+      <label for="author">Author</label>
+      <input type="text" class="form-control" id="postAuthor" placeholder="Your name">
     </div>
-    <div class="postDate"></div>
-    Content:
-    <div class="postContent">
-      <textarea cols="100" rows="5"></textarea>
+    <div class="form-group">
+      <label for="postContent">Content</label>
+      <textarea class="form-control" id="postContent" placeholder="Message" rows="5"></textarea>
     </div>
-    Images:
-    <input id="images" type="file" name="img" multiple></input>
-    <button id="postBtn">post</button>
-  </div>
+    <div class="form-group">
+      <label for="images">File input</label>
+      <input type="file" id="images" multiple>
+    </div>
+    <button id="postBtn" class="btn btn-primary">Post</button>
+  </form>
+</div>
 
   <!-- <div style="margin-top: 100px;" class="well col-sm-12 col-md-10 col-lg-8 col-md-offset-1 col-lg-offset-2" id="result"></div> -->
 
@@ -35,12 +39,12 @@
   (function() {
     var socket = io('http://localhost');
     //Add event listeners
-    $('#postBtn').click(function(){
+    $('#postBtn').click(function(e){
 
       //Fetch post data
       var data = {
-        author : $('#createPost .postAuthor > input').val(),
-        msg : $('#createPost .postContent > textarea').val()
+        author : $('#postAuthor').val(),
+        msg : $('#postContent').val()
       };
 
       var tab = document.getElementById('images').files;
@@ -66,6 +70,9 @@
         };
         reader.readAsArrayBuffer(tab[i]);
       }
+
+      $("form")[0].reset();
+      e.preventDefault();
     });
 
     /*$('#images').on('change', function(e) {
@@ -84,7 +91,11 @@
     });*/
 
     //TODO: make a real login
-    socket.emit('login', {user: "dummy", pass: "dummy"});
+    var login = {user: "dummy", pass: "dummy"};
+    socket.emit('login', login);
+    socket.on('reconnect', function () {
+      socket.emit('login', login);
+    })
   })();
 
 </script>
