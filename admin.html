@@ -37,9 +37,15 @@
   <script src="vendors/socket.io/socket.io.js"></script>
   <script>
   (function() {
+
+    //Restoring the author name
+    var a = localStorage.getItem("author");
+    if(a  !== null)
+      $('#postAuthor').val(a);
+
     var socket = io('http://localhost');
     //Add event listeners
-    $('#postBtn').click(function(e){
+    $('#postBtn').click(function(e) {
 
       //Fetch post data
       var data = {
@@ -47,12 +53,22 @@
         msg : $('#postContent').val()
       };
 
+      //Saving author name
+      var storageName = localStorage.getItem("author");
+      var formName = $('#postAuthor').val();
+      if(storageName  === null || storageName  !== formName)
+        localStorage.setItem("author", formName);
+
       var tab = document.getElementById('images').files;
       var j = 0, len = tab.length;
 
       if(len === 0)
       {
         socket.emit('post', data);
+
+        $("#postContent").val("");
+        $("#images").val("");
+        e.preventDefault();
         return;
       }
 
@@ -71,7 +87,8 @@
         reader.readAsArrayBuffer(tab[i]);
       }
 
-      $("form")[0].reset();
+      $("#postContent").val("");
+      $("#images").val("");
       e.preventDefault();
     });
 
