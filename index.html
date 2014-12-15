@@ -51,6 +51,7 @@
 
     //Add event listeners
     socket.on('post', onPost);
+    socket.on('bulkPost', onBulkPost);
 
     socket.on('like', function(id) {
       //increment the like counter of the like element identified by 'id'.
@@ -105,6 +106,11 @@
         socket.emit('dislike', data._id);
       });
     //Store it in the local cache.
+  }
+
+  function onBulkPost(data) {
+    for(var i = 0; i < data.length; ++i)
+      onPost(data[i]);
   }
 
   //Utility functions

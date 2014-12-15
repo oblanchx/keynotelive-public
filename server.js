@@ -204,14 +204,25 @@ function onReady(latestKeynotePoint, id) {
 	{
 		//TODO: remove the img by using field filters
 		posts.find({$query: {}, $orderby: {timestamp: 1}}).toArray(function(err, result) {
-			for(var i = 0; i < result.length; ++i)
+			//Remains of the old way to bulk send post to client
+			/*for(var i = 0; i < result.length; ++i)
 			{
 				var len = Object.keys(result[i]).length - 6;
 				for(var j = 0; j < len; ++j)
 					delete result[i]['img' + j];
 				result[i].nbimg = len;
 				srvSocket.to(id).emit('post', result[i]);
-			}
+			}*/
+
+			for(var i = 0; i < result.length; ++i)
+				{
+					var len = Object.keys(result[i]).length - 6;
+					for(var j = 0; j < len; ++j)
+						delete result[i]['img' + j];
+						result[i].nbimg = len;
+					}
+
+					srvSocket.to(id).emit('bulkPost', result);
 		});
 	}
 
