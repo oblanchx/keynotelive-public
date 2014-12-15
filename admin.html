@@ -21,6 +21,8 @@
     <div class="postContent">
       <textarea cols="100" rows="5"></textarea>
     </div>
+    Images:
+    <input id="images" type="file" name="img" multiple></input>
     <button id="postBtn">post</button>
   </div>
 
@@ -40,8 +42,46 @@
         author : $('#createPost .postAuthor > input').val(),
         msg : $('#createPost .postContent > textarea').val()
       };
-      socket.emit('post', data);
+
+      var tab = document.getElementById('images').files;
+      var j = 0, len = tab.length;
+
+      if(len === 0)
+      {
+        socket.emit('post', data);
+        return;
+      }
+
+      for(var i = 0; i < len; ++i)
+      {
+        var reader = new FileReader();
+        reader.onloadend = function (evt) {
+          if (evt.target.readyState == FileReader.DONE)
+          {
+            data["img" + j] = evt.target.result;
+            ++j;
+            if(j == len)
+              socket.emit('post', data);
+          }
+        };
+        reader.readAsArrayBuffer(tab[i]);
+      }
     });
+
+    /*$('#images').on('change', function(e) {
+
+      var tab = e.originalEvent.target.files;
+
+      for(var i = 0; i < tab.length; ++i)
+      {
+        var reader = new FileReader();
+        reader.onloadend = function (evt) {
+          if (evt.target.readyState == FileReader.DONE)
+            console.log(evt.target.result);
+        };
+        reader.readAsArrayBuffer(tab[i]);
+      }
+    });*/
 
     //TODO: make a real login
     socket.emit('login', {user: "dummy", pass: "dummy"});

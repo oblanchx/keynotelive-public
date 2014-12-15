@@ -26,6 +26,10 @@
       like-container, dislike-container {
         cursor: pointer;
       }
+      .post-img {
+        width: 100%;
+        margin-top: 10px;
+      }
     </style>
 
 </head>
@@ -78,12 +82,16 @@
     $('#postFeed').prepend('<div id="' + data._id + '"> \
         <h4><b>' + fancyTime(data.timestamp) + '</b> par ' + data.author + ' </h4> \
         <p>' + data.msg + '</p> \
-        <div class="pull-right"> \
-        <span class="like-container"><i class="fa fa-thumbs-o-up"></i><span class="like">' + data.like + '</span></span> \
-        <span class="dislike-container"><i class="fa fa-thumbs-o-down"></i><span class="dislike">' + data.dislike + '</span> </span> \
+        <div style="margin-top: 10px;" class="pull-right"> \
+          <span class="like-container"><i class="fa fa-thumbs-o-up"></i><span class="like">' + data.like + '</span></span> \
+          <span class="dislike-container"><i class="fa fa-thumbs-o-down"></i><span class="dislike">' + data.dislike + '</span> </span> \
         </div> \
         <hr> \
       </div>');
+
+      var e = $('#' + data._id + ' p');
+      for(var i = 0; i < data.nbimg; ++i)
+        $('<img class="post-img" src="/?type=img&id='+ data._id +'&num=' + i + '"></img>').insertAfter(e);
 
       //Like button click handler
       $('#' + data._id + ' span.like-container ').click(function() {
