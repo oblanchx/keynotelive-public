@@ -52,6 +52,7 @@
       //is assigned when a new database is created.
       openRequest.onupgradeneeded = createObjectStore;
       //Triggered when a connection to the keyNoteLiveDB is established.
+      var latestTimeStamp = 0;
       openRequest.onsuccess = populFeedWithCache;
       //Handle errors at the database level instead of the request level to minimize
       //the number of handlers hooked to individual requests.
@@ -63,13 +64,15 @@
       //Store to localStorage
     }
 //~~~~~~~~~~~~~~~~~~~~~~ Create and initialize socket. ~~~~~~~~~~~~~~~~~~~~~~//
-    var socket;
-    socket = io('http://localhost');
+    var socket = io('http://localhost');
     //Add event listeners
     socket.on('post', onPost);
     socket.on('update', onUpdate);
     socket.on('delete', onDelete);
-    socket.on('bulkPost', onBulkPost);
+    socket.on('bulkPost', function(data) {
+      for(var i = 0; i < data.length; ++i)
+        onPost(data[i]);
+    });
     socket.on('like', function(id) {
       //increment the like counter of the like element identified by 'id'.
       var e = $('#' + id + ' span.like-container > span');
@@ -81,15 +84,15 @@
       e.text(parseInt(e.text()) + 1);
     });
 
-    //Fetch the latest cached point of the keynote.
+
     //Send it to the server.
-    //socket.emit('ready', latestCachedKeynote);
+    socket.emit('ready', latestTimeStamp, socket.id);
 
     function createObjectStore(event) {
       db = event.target.result;
       if(!db.objectStoreNames.contains("posts")) {
         //'id' is the primary key of the 'posts' objectStore.
-        var objectStore = db.createObjectStore("posts", { keyPath: "id" });
+        var objectStore = db.createObjectStore("posts", { keyPath: "_id" });
         //This index will ensure the postFeed is populated with posts ordered by timestamp.
         objectStore.createIndex("timestamp", "timestamp", { unique: false});
         objectStore.transaction.oncomplete = function(event) {
@@ -117,6 +120,7 @@
           </div> \
           <hr> \
           </div>');
+          latestTimeStamp = cursor.value.timestamp;
           cursor.continue();
         }
         else {
@@ -161,14 +165,8 @@
         socket.emit('dislike', data._id);
       });
 
-      storeToCache({
-        _id: data._id,
-        timestamp: data.timestamp,
-        author: data.author,
-        msg: data.msg,
-        like: data.like,
-        dislike: data.dislike
-      });
+      storeToCache(data);
+
   }
 
   function onUpdate(data) {
@@ -206,11 +204,6 @@
       // event.target.result == customerData[i].ssn;
       console.log("Data added to the objectStore 'posts'.");
     };
-  }
-
-  function onBulkPost(data) {
-    for(var i = 0; i < data.length; ++i)
-      onPost(data[i]);
   }
 
   //Utility functions
