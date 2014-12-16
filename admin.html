@@ -92,11 +92,11 @@
     var socket = io('http://localhost');
 
     //Auto login
-    var login;
+    var login = {};
     var l = localStorage.getItem("login");
     if(l !== null)
     {
-      login = JSON.parse(l)
+      login = JSON.parse(l);
       socket.emit('login', login);
     }
     else
