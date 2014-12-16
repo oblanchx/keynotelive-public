@@ -39,25 +39,26 @@
 
 <script>
 (function() {
-    //Populate page with cache content.
-    var db;
+//~~~~~~~~~~~~~~~~~~~~ Populate page with cache content. ~~~~~~~~~~~~~~~~~~~~//
     if("indexedDB" in window) {
+      var db;
+      //Open the 'keyNoteLiveDB' database ver.1 if is exists or create it if not.
       var openRequest = indexedDB.open("keyNoteLiveDB",1);
-      //Triggered when no object store is present in indexedDB since we only use
-      //one version of the objectStore.
+      //Triggered when a version number is assigned to a database. A version number
+      //is assigned when a new database is created.
       openRequest.onupgradeneeded = createObjectStore;
       //Triggered when a connection to the keyNoteLiveDB is established.
       openRequest.onsuccess = populFeedWithCache;
-      //Handle errors at the database level to minimize the number of added handlers
-      //to the individual requests.
+      //Handle errors at the database level instead of the request level to minimize
+      //the number of handlers hooked to individual requests.
       openRequest.onerror = function(event) {
-        console.log("Database error: " + event.target.errorCode);
+        console.log("keyNoteLiveDB database error: " + event.target.errorCode);
         console.dir(event);
       }
     } else {
       //Store to localStorage
     }
-
+//~~~~~~~~~~~~~~~~~~~~~~ Create and initialize socket. ~~~~~~~~~~~~~~~~~~~~~~//
     var socket;
     socket = io('http://localhost');
     //Add event listeners
@@ -75,7 +76,7 @@
       e.text(parseInt(e.text()) + 1);
     });
 
-    //Fetch the latest cached point of the keynote
+    //Fetch the latest cached point of the keynote.
     //Send it to the server.
     //socket.emit('ready', latestCachedKeynote);
 
@@ -84,6 +85,8 @@
       if(!db.objectStoreNames.contains("posts")) {
         //'id' is the primary key of the 'posts' objectStore.
         var objectStore = db.createObjectStore("posts", { keyPath: "id" });
+        //This index will ensure the postFeed is populated with posts ordered by timestamp.
+        objectStore.createIndex("timestamp", "timestamp", { unique: false});
         objectStore.transaction.oncomplete = function(event) {
           console.log("objectStore 'posts' created.");
         }
@@ -91,9 +94,13 @@
     }
 
     function populFeedWithCache(event) {
+
+      //Using an index on 'timestamp' to retrieve posts ordered by timestamp.
       db = event.target.result;
       var objectStore = db.transaction(["posts"]).objectStore("posts");
-      objectStore.openCursor().onsuccess = function(event) {
+      var index = objectStore.index("timestamp");
+      index.openCursor().onsuccess = function(event) {
+        //The key used by the cursor to iterate is the timestamp.
         var cursor = event.target.result;
         if (cursor) {
           $('#postFeed').prepend('<div id="' + cursor.key + '"> \
@@ -146,7 +153,7 @@
       });
 
       storeToCache({
-        id: data._id,
+        _id: data._id,
         timestamp: data.timestamp,
         author: data.author,
         msg: data.msg,
@@ -165,29 +172,8 @@
     .objectStore("posts")
     .delete(data._id);
     request.onsuccess = function(event) {
-      // It's gone!
+      //console.log('Post '+ data.id);
     };
-  }
-
-  function onBulkPost() {
-    //fetch a part of the locally stored posts and populate the postFeed with it.
-
-    /*var objectStore = db.transaction("customers").objectStore("customers");
-
-    objectStore.openCursor().onsuccess = function(event) {
-      var cursor = event.target.result;
-      if (cursor) {
-        cursor.value.id;
-        cursor.value.author;
-        cursor.value.timestamp;
-        cursor.value.msg;
-        //console.log("Name for SSN " + cursor.key + " is " + cursor.value.name);
-        cursor.continue();
-      }
-      else {
-        console.log("No more entries!");
-      }
-    };*/
   }
 
   //Cache system
