@@ -33,11 +33,24 @@ cache.cachePage('/vendors/font-awesome/css/font-awesome.min.css');
 var server = http.createServer(function(req, res) {
 
 	//Parsing url variables
-	//var query = url.parse(req.url, true).query;
-	//console.log(query);
-	var pathname = url.parse(req.url).pathname;
-	console.log("Request for " + pathname + " received.");
-	route(pathname, req, res);
+	var query = filterGet(url.parse(req.url, true).query);
+
+	if(getCheck(query, {type: "img", id: true, num: true}))
+	{
+			posts.findOne({_id: new ObjectID(query.id)}, ["img" + query.num], function(err, result) {
+				var t = result['img' + query.num].buffer;
+
+				//Set the right mimetype and cache the image forever (almost)
+				res.writeHead(200, {"Content-Type": getImageMimeType(t), "Cache-Control": "max-age=31556926"});
+				res.end(t);
+			});
+	}
+	else
+	{
+		var pathname = url.parse(req.url).pathname;
+		console.log("Request for " + pathname + " received.");
+		route(pathname, req, res);
+	}
 });
 
 var posts;	//TODO: Check if we should declare posts here.
@@ -107,6 +120,12 @@ function addListeners(cltSocket, srvSocket) {
 		//If the login event is received we attach the listeners for the admin functions to the socket
 
 		//TODO: verify the login informations
+		if(data.user != "admin" || data.pass != "couilles")
+		{
+			srvSocket.to(cltSocket.id).emit('logged', false);
+			return;
+		}
+
 		console.log("An admin logged in.");
 		cltSocket.addListener('delete', function() {
 
@@ -123,10 +142,22 @@ function addListeners(cltSocket, srvSocket) {
 			data.like = 0;
 			data.dislike = 0;
 
-			posts.insert(data, function(err, result) {
-				srvSocket.emit('post', result[0]);
+			var len = Object.keys(data).length - 5;
+			for(var i = 0; i < len; ++i)
+				if(getImageType(data['img' + i]) === false)
+					return;
+
+			posts.insert(data, function(err) {
+				var len = Object.keys(data).length - 6;
+				for(var i = 0; i < len; ++i)
+					delete data['img' + i];
+				data.nbimg = len;
+
+				srvSocket.emit('post', data);
 			});
 		});
+
+		srvSocket.to(cltSocket.id).emit('logged', true);
 	});
 
 }
@@ -171,9 +202,27 @@ function onReady(latestKeynotePoint, id) {
 	//Send the data to the client that emitted the 'ready' event.
 	if(latestKeynotePoint === null)
 	{
+		//TODO: remove the img by using field filters
 		posts.find({$query: {}, $orderby: {timestamp: 1}}).toArray(function(err, result) {
-			for(var i = 0; i < result.length; ++i)
+			//Remains of the old way to bulk send post to client
+			/*for(var i = 0; i < result.length; ++i)
+			{
+				var len = Object.keys(result[i]).length - 6;
+				for(var j = 0; j < len; ++j)
+					delete result[i]['img' + j];
+				result[i].nbimg = len;
 				srvSocket.to(id).emit('post', result[i]);
+			}*/
+
+			for(var i = 0; i < result.length; ++i)
+				{
+					var len = Object.keys(result[i]).length - 6;
+					for(var j = 0; j < len; ++j)
+						delete result[i]['img' + j];
+						result[i].nbimg = len;
+					}
+
+					srvSocket.to(id).emit('bulkPost', result);
 		});
 	}
 
@@ -208,4 +257,61 @@ function getMimeType(pathname) {
 		}
 	}
 	return mimeType;
+}
+
+function getCheck(query, obj)
+{
+	for(var i in obj)
+	{
+		if(obj[i] === true && typeof query[i] === "undefined")
+			return false;
+		if(obj[i] !== true && query[i] !== obj[i])
+			return false;
+	}
+
+	return true;
+}
+
+function filterGet(query)
+{
+	for(var i in query)
+	{
+		query[i] = query[i].trim();
+		if(query[i] === "")
+			delete query[i];
+	}
+
+	return query;
+}
+
+//Function that check file signature to get the image type
+function getImageType(buffer)
+{
+	if(buffer.readUInt16BE(0) === 65496 && buffer.readUInt8(2) === 255) //jpg
+		return 0;
+	else if(buffer.readUInt32BE(0) === 2303741511 && buffer.readUInt32BE(4) === 218765834) //png
+		return 1;
+	else if(buffer.readUInt32BE(0) === 1195984440) //gif
+		return 2;
+	else
+			return false;
+}
+
+//Function that check file signature and return the mime type
+function getImageMimeType(buffer)
+{
+	switch(getImageType(buffer))
+	{
+			case 0:
+				return "image/jpeg";
+			break;
+			case 1:
+				return "image/png";
+			break;
+			case 2:
+				return "image/gif";
+			break;
+			default:
+				return false;
+	}
 }

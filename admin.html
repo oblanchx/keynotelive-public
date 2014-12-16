@@ -7,274 +7,166 @@
   <title>KeyNoteLive</title>
 
   <link href="vendors/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="vendors/font-awesome/css/font-awesome.min.css">
+
+  <style>
+  body {
+    padding-top: 40px;
+    padding-bottom: 40px;
+    background-color: #eee;
+  }
+
+  .form-signin {
+    max-width: 330px;
+    padding: 15px;
+    margin: 0 auto;
+  }
+  .form-signin .form-signin-heading,
+  .form-signin .checkbox {
+    margin-bottom: 10px;
+  }
+  .form-signin .checkbox {
+    font-weight: normal;
+  }
+  .form-signin .form-control {
+    position: relative;
+    height: auto;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    padding: 10px;
+    font-size: 16px;
+  }
+  .form-signin .form-control:focus {
+    z-index: 2;
+  }
+  .form-signin input[type="email"] {
+    margin-bottom: -1px;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+  .form-signin input[type="password"] {
+    margin-bottom: 10px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+  </style>
 
 </head>
 <body>
 
-  <div id="createPost">
-    <div class="postAuthor">
-      Author:
-      <input type=text></input>
+<div style="margin-top: 100px;display: none;" class="well col-sm-12 col-md-10 col-lg-8 col-md-offset-1 col-lg-offset-2" id="postForm">
+  <form id="form" role="form">
+    <div class="form-group">
+      <label for="author">Author</label>
+      <input type="text" class="form-control" id="postAuthor" placeholder="Your name">
     </div>
-    <div class="postDate"></div>
-    Content:
-    <div class="postContent">
-      <textarea cols="100" rows="5"></textarea>
+    <div class="form-group">
+      <label for="postContent">Content</label>
+      <textarea class="form-control" id="postContent" placeholder="Message" rows="5"></textarea>
     </div>
-    <button id="postBtn">post</button>
-  </div>
-  <div style="margin-top: 100px;" class="well col-sm-12 col-md-10 col-lg-8 col-md-offset-1 col-lg-offset-2" id="postFeed"></div>
-
+    <div class="form-group">
+      <label for="images">File input</label>
+      <input type="file" id="images" multiple>
+    </div>
+    <button id="postBtn" class="btn btn-primary">Post</button>
+  </form>
+</div>
+<div id="loginForm" style="display: none;">
+  <form class="form-signin" role="form">
+    <h2 class="form-signin-heading">Please sign in</h2>
+    <label for="username" class="sr-only">Username</label>
+    <input type="text" id="username" class="form-control" placeholder="Username" required autofocus>
+    <label for="password" class="sr-only">Password</label>
+    <input type="password" id="password" class="form-control" placeholder="Password" required>
+    <button id="loginBtn" class="btn btn-lg btn-primary btn-block">Sign in</button>
+  </form>
+</div>
 <script src="vendors/jquery/jquery-1.11.1.min.js"></script>
 <script src="vendors/bootstrap/js/bootstrap.min.js"></script>
 <script src="vendors/socket.io/socket.io.js"></script>
 <script>
 (function() {
-
-  //~~~~~~~~~~~~~~~~~~~~ Populate page with cache content. ~~~~~~~~~~~~~~~~~~~~//
-  if("indexedDB" in window) {
-    var db;
-    //Open the 'keyNoteLiveDB' database ver.1 if is exists or create it if not.
-    var openRequest = indexedDB.open("keyNoteLiveDB",1);
-    //Triggered when a version number is assigned to a database. A version number
-    //is assigned when a new database is created.
-    openRequest.onupgradeneeded = createObjectStore;
-    //Triggered when a connection to the keyNoteLiveDB is established.
-    openRequest.onsuccess = populFeedWithCache;
-    //Handle errors at the database level instead of the request level to minimize
-    //the number of handlers hooked to individual requests.
-    openRequest.onerror = function(event) {
-      console.log("keyNoteLiveDB database error: " + event.target.errorCode);
-      console.dir(event);
-    }
-  } else {
-    //Store to localStorage
-  }
-
-  //~~~~~~~~~~~~~~~~~~~~~~ Create and initialize socket. ~~~~~~~~~~~~~~~~~~~~~~//
-  var socket;
-  socket = io('http://localhost');
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Initialize socket. ~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+  var socket = io('http://localhost');
   //Add event listeners
-  socket.on('post', onPost);
-  socket.on('update', onUpdate);
-  socket.on('delete', onDelete);
-  socket.on('like', function(id) {
-    //increment the like counter of the like element identified by 'id'.
-    var e = $('#' + id + ' span.like-container > span');
-    e.text(parseInt(e.text()) + 1);
-  });
-  socket.on('dislike', function(id) {
-    //increment the dislike counter of the dislike element identified by 'id'.
-    var e = $('#' + id + ' span.dislike-container > span');
-    e.text(parseInt(e.text()) + 1);
-  });
+  socket.on("logged", function(ok) {
+    if(ok)
+      {
+        socket.on('reconnect', function () {
+          socket.emit('login', login);
+        });
+        $("#loginForm").fadeOut(function() {
+          $("#postForm").fadeIn();
+        });
+        if(typeof login.user !== "undefined" && typeof login.pass !== "undefined")
+          localStorage.setItem("login", JSON.stringify(login));
+        }
+        else
+          $("#postForm").fadeOut(function() {
+            $("#loginForm").fadeIn();
+          });
+        });
 
-  //Fetch the latest cached point of the keynote.
-  //Send it to the server.
-  //socket.emit('ready', latestCachedKeynote);
-
-  function createObjectStore(event) {
-    db = event.target.result;
-    if(!db.objectStoreNames.contains("posts")) {
-      //'id' is the primary key of the 'posts' objectStore.
-      var objectStore = db.createObjectStore("posts", { keyPath: "id" });
-      //This index will ensure the postFeed is populated with posts ordered by timestamp.
-      objectStore.createIndex("timestamp", "timestamp", { unique: false});
-      objectStore.transaction.oncomplete = function(event) {
-        console.log("objectStore 'posts' created.");
-      }
-    }
+  //Auto login
+  var login = {};
+  var l = localStorage.getItem("login");
+  if(l !== null) {
+    login = JSON.parse(l);
+    socket.emit('login', login);
   }
-  //Add event listeners
-  $('#postBtn').click(function(){
+  else
+    $("#loginForm").fadeIn();
+  //Restoring the author name
+  var a = localStorage.getItem("author");
 
+  if(a  !== null)
+    $('#postAuthor').val(a);
+  //Add event listeners
+  $('#postBtn').click(function(e) {
     //Fetch post data
     var data = {
-      author : $('#createPost .postAuthor > input').val(),
-      msg : $('#createPost .postContent > textarea').val()
+      author : $('#postAuthor').val(),
+      msg : $('#postContent').val()
     };
-    console.log('emitting post');
-    socket.emit('post', data);
+    //Saving author name
+    var storageName = localStorage.getItem("author");
+    var formName = $('#postAuthor').val();
+    if(storageName  === null || storageName  !== formName)
+      localStorage.setItem("author", formName);
+
+    var tab = document.getElementById('images').files;
+    var j = 0, len = tab.length;
+
+    if(len === 0) {
+      socket.emit('post', data);
+      $("#postContent").val("");
+      $("#images").val("");
+      e.preventDefault();
+      return;
+    }
+
+    for(var i = 0; i < len; ++i) {
+      var reader = new FileReader();
+      reader.onloadend = function (evt) {
+        if (evt.target.readyState == FileReader.DONE)
+        {
+          data["img" + j] = evt.target.result;
+          ++j;
+          if(j == len)
+          socket.emit('post', data);
+        }
+      };
+      reader.readAsArrayBuffer(tab[i]);
+    }
   });
 
-  //TODO: make a real login
-  socket.emit('login', {user: "dummy", pass: "dummy"});
-
-  function populFeedWithCache(event) {
-
-    //Using an index on 'timestamp' to retrieve posts ordered by timestamp.
-    db = event.target.result;
-    var objectStore = db.transaction(["posts"]).objectStore("posts");
-    var index = objectStore.index("timestamp");
-    index.openCursor().onsuccess = function(event) {
-      //The key used by the cursor to iterate is the timestamp.
-      var cursor = event.target.result;
-      if (cursor) {
-        $('#postFeed').prepend('<div id="' + cursor.key + '"> \
-        <h4><b>' + fancyTime(cursor.value.timestamp) + '</b> par ' + cursor.value.author + ' </h4> \
-        <p>' + cursor.value.msg + '</p> \
-        <div class="pull-right"> \
-        <span class="like-container"><i class="fa fa-thumbs-o-up"></i><span class="like">' + cursor.value.like + '</span></span> \
-        <span class="dislike-container"><i class="fa fa-thumbs-o-down"></i><span class="dislike">' + cursor.value.dislike + '</span> </span> \
-        </div> \
-        <hr> \
-        <div class="pull-left" id="editPost"> \
-        <button class="editBtn">edit</button>\
-        <button class="delBtn">delete</button>\
-        </div> \
-        </div>');
-        cursor.continue();
-      }
-      else {
-        //console.log("No more entries!");
-      }
-    };
-  }
-
-/*******************************************************************************
-*																	Event Handlers													   	 *
-*******************************************************************************/
-
-  //socket.io event handlers
-
-  function onPost(data) {
-    //Populate keynote feed with post data
-    console.log('post received.');
-    //Push the Keynote object on the feed.
-    $('#postFeed').prepend('<div id="' + data._id + '"> \
-    <h4><b>' + fancyTime(data.timestamp) + '</b> par ' + data.author + ' </h4> \
-    <p>' + data.msg + '</p> \
-    <div class="pull-right"> \
-    <span class="like-container"><i class="fa fa-thumbs-o-up"></i><span class="like">' + data.like + '</span></span> \
-    <span class="dislike-container"><i class="fa fa-thumbs-o-down"></i><span class="dislike">' + data.dislike + '</span> </span> \
-    </div> \
-    <hr> \
-    <div class="pull-left" id="editPost"> \
-    <button class="editBtn">edit</button>\
-    <button class="delBtn">delete</button>\
-    </div> \
-    </div>');
-
-    //edit button click handler
-    $('#' + data._id + ' .editBtn').click();
-
-    //delete button click handler
-    $('#' + data._id + ' .delBtn').click(function() {
-      var request = db.transaction(["posts"], "readwrite")
-      .objectStore("posts")
-      .delete(data._id);
-      request.onsuccess = function(event) {
-        //console.log('Post '+ data.id);
-      };
-      socket.emit('delete', data.z)
-      this.remove();
-    });
-
-    storeToCache({
-      id: data._id,
-      timestamp: data.timestamp,
-      author: data.author,
-      msg: data.msg,
-      like: data.like,
-      dislike: data.dislike
-    });
-  }
-
-  function onUpdate(data) {
-    //$('#'+data._id).
-  }
-
-  function onDelete(data) {
-    $('#'+data._id).remove();
-    var request = db.transaction(["posts"], "readwrite")
-    .objectStore("posts")
-    .delete(data._id);
-    request.onsuccess = function(event) {
-      // It's gone!
-    };
-  }
-
-  function onBulkPost() {
-
-  }
-
-//Cache system
-
-  function storeToCache(data) {
-    console.log(data);
-    //Add data to the database
-    var transaction = db.transaction(["posts"], "readwrite");
-    // Do something when all the data is added to the database.
-    transaction.oncomplete = function(event) {
-      console.log("Data added to the 'posts' objectStore.");
-    };
-    transaction.onerror = function(event) {
-      //TODO: Handle errors.
-      console.log('Error when storing to cache.');
-    };
-    var objectStore = transaction.objectStore("posts");
-    //using put instead of add overwrite previously existing data.
-    var request = objectStore.put(data);
-    request.onsuccess = function(event) {
-      // event.target.result == customerData[i].ssn;
-      console.log("Data added to the objectStore 'posts'.");
-    };
-  }
-
-  function getFromCache(id) {
-    /* Long version
-    var transaction = db.transaction(["posts"]);
-    var objectStore = transaction.objectStore("posts");
-    var request = objectStore.get(id);
-    request.onerror = function(event) {
-    //TODO: Handle errors.
-  };
-  request.onsuccess = function(event) {
-  // Do something with the request.result!
-  };*/
-  var data;
-  db.transaction("posts")
-  .objectStore("posts")
-  .get(id)
-  .onsuccess = function(event) {
-    console.log("fetched data: " + request.result);
-    data = request.result;
-  };
-  return data;
-  }
-
-  //Utility functions
-  function pad(n){return n<10 ? '0'+n : n}
-
-  function fancyTime(timestamp)
-  {
-    var nameDays = new Array("dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi") ;
-    var nameMonth = new Array("janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre") ;
-
-    var actualDate = new Date();
-    var postDate = new Date(timestamp);
-    var timeDiff = Math.round((actualDate - postDate)/1000);
-
-    if (timeDiff < 86400)
-    {
-      if (timeDiff >= 60 && timeDiff < 120)
-        return "il y a environ une minute";
-      else if (timeDiff >= 60 && timeDiff < 3600)
-        return "il y a " + Math.floor(timeDiff/60) + " minutes";
-      else if (timeDiff >= 3600 && timeDiff < 7200)
-        return "il y a environ une heure";
-      else if (timeDiff >= 3600)
-        return "il y a " + Math.floor(timeDiff/3600) + " heures";
-      else
-        return "il y a moins d'une minute";
-    }
-    else if(timeDiff < 172800)
-      return "hier à " + pad(postDate.getHours()) + ":" + pad(postDate.getMinutes());
-    else if(postDate.getWeek() == actualDate.getWeek())
-      return nameDays[postDate.getDay()] + " à " + pad(postDate.getHours()) + ":" + pad(postDate.getMinutes());
-    else
-      return postDate.getDate() + " " + nameMonth[postDate.getMonth()] + ", à " + pad(postDate.getHours()) + ":" + pad(postDate.getMinutes());
-  }
+  $('#loginBtn').click(function(e) {
+    login.user = $("#username").val();
+    login.pass = $("#password").val();
+    socket.emit('login', login);
+    e.preventDefault();
+  });
 
 })();
 </script>
