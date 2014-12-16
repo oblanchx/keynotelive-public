@@ -121,6 +121,12 @@ function addListeners(cltSocket, srvSocket) {
 		//If the login event is received we attach the listeners for the admin functions to the socket
 
 		//TODO: verify the login informations
+		if(data.user != "admin" || data.pass != "couilles")
+		{
+			srvSocket.to(cltSocket.id).emit('logged', false);
+			return;
+		}
+
 		console.log("An admin logged in.");
 
 		cltSocket.addListener('adminLog', function() {
@@ -153,6 +159,8 @@ function addListeners(cltSocket, srvSocket) {
 				srvSocket.emit('post', data);
 			});
 		});
+
+		srvSocket.to(cltSocket.id).emit('logged', true);
 	});
 }
 

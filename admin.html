@@ -9,10 +9,53 @@
   <link href="vendors/bootstrap/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="vendors/font-awesome/css/font-awesome.min.css">
 
+  <style>
+  body {
+    padding-top: 40px;
+    padding-bottom: 40px;
+    background-color: #eee;
+  }
+
+  .form-signin {
+    max-width: 330px;
+    padding: 15px;
+    margin: 0 auto;
+  }
+  .form-signin .form-signin-heading,
+  .form-signin .checkbox {
+    margin-bottom: 10px;
+  }
+  .form-signin .checkbox {
+    font-weight: normal;
+  }
+  .form-signin .form-control {
+    position: relative;
+    height: auto;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    padding: 10px;
+    font-size: 16px;
+  }
+  .form-signin .form-control:focus {
+    z-index: 2;
+  }
+  .form-signin input[type="email"] {
+    margin-bottom: -1px;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+  .form-signin input[type="password"] {
+    margin-bottom: 10px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+  </style>
+
 </head>
 <body>
 
-  <div style="margin-top: 100px;" class="well col-sm-12 col-md-10 col-lg-8 col-md-offset-1 col-lg-offset-2" id="result">
+  <div style="margin-top: 100px;display: none;" class="well col-sm-12 col-md-10 col-lg-8 col-md-offset-1 col-lg-offset-2" id="postForm">
   <form id="form" role="form">
     <div class="form-group">
       <label for="author">Author</label>
@@ -30,20 +73,40 @@
   </form>
 </div>
 
-  <!-- <div style="margin-top: 100px;" class="well col-sm-12 col-md-10 col-lg-8 col-md-offset-1 col-lg-offset-2" id="result"></div> -->
+<div id="loginForm" style="display: none;">
+  <form class="form-signin" role="form">
+    <h2 class="form-signin-heading">Please sign in</h2>
+    <label for="username" class="sr-only">Username</label>
+    <input type="text" id="username" class="form-control" placeholder="Username" required autofocus>
+    <label for="password" class="sr-only">Password</label>
+    <input type="password" id="password" class="form-control" placeholder="Password" required>
+    <button id="loginBtn" class="btn btn-lg btn-primary btn-block">Sign in</button>
+  </form>
+</div>
 
   <script src="vendors/jquery/jquery-1.11.1.min.js"></script>
   <script src="vendors/bootstrap/js/bootstrap.min.js"></script>
   <script src="vendors/socket.io/socket.io.js"></script>
   <script>
   (function() {
+    var socket = io('http://localhost');
+
+    //Auto login
+    var login;
+    var l = localStorage.getItem("login");
+    if(l !== null)
+    {
+      login = JSON.parse(l)
+      socket.emit('login', login);
+    }
+    else
+      $("#loginForm").fadeIn();
 
     //Restoring the author name
     var a = localStorage.getItem("author");
     if(a  !== null)
       $('#postAuthor').val(a);
 
-    var socket = io('http://localhost');
     //Add event listeners
     $('#postBtn').click(function(e) {
 
@@ -92,27 +155,33 @@
       e.preventDefault();
     });
 
-    /*$('#images').on('change', function(e) {
-
-      var tab = e.originalEvent.target.files;
-
-      for(var i = 0; i < tab.length; ++i)
-      {
-        var reader = new FileReader();
-        reader.onloadend = function (evt) {
-          if (evt.target.readyState == FileReader.DONE)
-            console.log(evt.target.result);
-        };
-        reader.readAsArrayBuffer(tab[i]);
-      }
-    });*/
-
-    //TODO: make a real login
-    var login = {user: "dummy", pass: "dummy"};
-    socket.emit('login', login);
-    socket.on('reconnect', function () {
+    $('#loginBtn').click(function(e) {
+      login.user = $("#username").val();
+      login.pass = $("#password").val();
       socket.emit('login', login);
-    })
+
+      e.preventDefault();
+    });
+
+    socket.on("logged", function(ok) {
+      if(ok)
+      {
+        socket.on('reconnect', function () {
+          socket.emit('login', login);
+        });
+
+        $("#loginForm").fadeOut(function() {
+          $("#postForm").fadeIn();
+        });
+
+        if(typeof login.user !== "undefined" && typeof login.pass !== "undefined")
+          localStorage.setItem("login", JSON.stringify(login));
+      }
+      else
+        $("#postForm").fadeOut(function() {
+          $("#loginForm").fadeIn();
+        });
+    });
   })();
 
 </script>
